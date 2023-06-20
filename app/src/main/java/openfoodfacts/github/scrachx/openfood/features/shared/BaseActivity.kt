@@ -96,6 +96,7 @@ abstract class BaseActivity : AppCompatActivity() {
             addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
         })
     }
+
 }
 
 

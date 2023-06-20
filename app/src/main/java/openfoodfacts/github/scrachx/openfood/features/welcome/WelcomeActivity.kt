@@ -25,14 +25,15 @@ import android.util.TypedValue
 import android.view.Window
 import android.view.WindowManager
 import android.widget.TextView
+import androidx.compose.runtime.collectAsState
 import androidx.core.content.ContextCompat
 import androidx.core.content.edit
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
-import androidx.viewpager.widget.ViewPager.OnPageChangeListener
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.flow.MutableStateFlow
 import openfoodfacts.github.scrachx.openfood.R
 import openfoodfacts.github.scrachx.openfood.analytics.MatomoAnalytics
 import openfoodfacts.github.scrachx.openfood.analytics.SentryAnalytics
@@ -60,6 +61,7 @@ class WelcomeActivity : BaseActivity() {
     private val binding get() = _binding!!
 
     private val screens = WelcomeScreen.values()
+    private var currentPosition = MutableStateFlow(0)
 
     @Inject
     lateinit var matomoAnalytics: MatomoAnalytics
@@ -73,33 +75,19 @@ class WelcomeActivity : BaseActivity() {
     @Inject
     lateinit var prefManager: PreferencesService
 
-    private val viewPagerPageChangeListener = object : OnPageChangeListener {
+    private fun onSkipClick() {
+        saveThenLaunchHome(false)
+    }
 
-        override fun onPageScrolled(position: Int, positionOffset: Float, positionOffsetPixels: Int) = Unit
-        override fun onPageScrollStateChanged(state: Int) = Unit
+    private fun onNextClick() {
 
-        override fun onPageSelected(position: Int) {
-            refreshBottomBar(position)
+        when (WelcomeScreen[currentPosition.value]) {
+            WelcomeScreen.ANALYTICS -> {
+                saveThenLaunchHome(true)
+            }
 
-            when (WelcomeScreen[position]) {
-                WelcomeScreen.ANALYTICS -> {
-                    binding.btnNext.setText(R.string.preference_analytics_bottom_sheet_grant_button)
-                    binding.btnSkip.setText(R.string.preference_analytics_bottom_sheet_decline_button)
-
-                    binding.btnNext.setTextColor(ResourcesCompat.getColor(resources, android.R.color.black, theme))
-                    binding.btnSkip.setTextColor(ResourcesCompat.getColor(resources, android.R.color.black, theme))
-
-                    binding.btnNext.setOnClickListener { saveThenLaunchHome(true) }
-                    binding.btnSkip.setOnClickListener { saveThenLaunchHome(false) }
-                }
-                else -> {
-                    binding.btnNext.setTextColor(ResourcesCompat.getColor(resources, android.R.color.white, theme))
-                    binding.btnSkip.setTextColor(ResourcesCompat.getColor(resources, android.R.color.white, theme))
-
-                    binding.btnNext.setText(R.string.next)
-                    binding.btnSkip.setText(R.string.skip)
-                    setOnClicks()
-                }
+            else -> {
+                currentPosition.value += 1
             }
         }
     }
@@ -122,23 +110,23 @@ class WelcomeActivity : BaseActivity() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
         WindowInsetsControllerCompat(window, binding.root).hide(WindowInsetsCompat.Type.statusBars())
 
-        refreshBottomBar(0)
         changeStatusBarColor()
 
-        binding.viewPager.adapter = WelcomePageAdapter(layoutInflater)
-        binding.viewPager.addOnPageChangeListener(viewPagerPageChangeListener)
+        binding.composeView.setContent {
 
-        setOnClicks()
+            val currentScreen = currentPosition.collectAsState()
+            WelcomeRoute(
+                screens[currentScreen.value],
+                onSkipClick = this::onSkipClick,
+                onNextClick = this::onNextClick
+            )
+        }
+
     }
 
     override fun onDestroy() {
         _binding = null
         super.onDestroy()
-    }
-
-    private fun setOnClicks() {
-        binding.btnSkip.setOnClickListener { binding.viewPager.currentItem = screens.size - 1 }
-        binding.btnNext.setOnClickListener { binding.viewPager.currentItem = nextItem }
     }
 
     private fun saveThenLaunchHome(analyticsEnabled: Boolean) {
@@ -159,26 +147,6 @@ class WelcomeActivity : BaseActivity() {
         MainActivity.start(this)
         finish()
     }
-
-    private fun refreshBottomBar(currentPage: Int) {
-        binding.layoutDots.removeAllViews()
-
-        val color = ContextCompat.getColor(this, WelcomeScreen[currentPage].color)
-        val lightColor = color.lighten(0.85f)
-        val darkColor = color.darken(0.1f)
-
-        val dots = (0..screens.lastIndex).map {
-            TextView(this).apply {
-                text = "\u2022"
-                this.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 35F)
-                setTextColor(lightColor)
-                binding.layoutDots.addView(this)
-            }
-        }
-        dots[currentPage].setTextColor(darkColor)
-    }
-
-    private val nextItem get() = binding.viewPager.currentItem + 1
 
     private fun changeStatusBarColor() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) return

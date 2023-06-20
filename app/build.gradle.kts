@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+@Suppress("DSL_SCOPE_VIOLATION") // TODO: Remove once KTIJ-19369 is fixed
 plugins {
     id("com.android.application")
     alias(libs.plugins.resourceplaceholders) apply true
@@ -34,6 +35,17 @@ fun obtainTestBuildType(): String {
 }
 
 dependencies {
+
+    // Compose
+    implementation(libs.core.ktx)
+    implementation(libs.lifecycle.runtime.ktx)
+    implementation(libs.activity.compose)
+    implementation(platform(libs.compose.bom))
+    implementation(libs.ui)
+    implementation(libs.ui.graphics)
+    implementation(libs.ui.tooling)
+    implementation(libs.ui.tooling.preview)
+    implementation(libs.material3)
 
     // Kotlin coroutines
     implementation(libs.bundles.kotlin.coroutines)
@@ -175,6 +187,10 @@ android {
 
     buildFeatures {
         viewBinding = true
+        compose = true
+    }
+    composeOptions {
+        kotlinCompilerExtensionVersion = "1.4.6"
     }
 
     flavorDimensions += listOf("versionCode", "platform")
