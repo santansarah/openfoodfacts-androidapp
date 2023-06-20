@@ -42,7 +42,7 @@ currentScreen: WelcomeScreen
             Image(
                 painter = painterResource(id = currentScreen.welcomeImage),
                 contentDescription = "",
-                contentScale = ContentScale.FillWidth,
+                contentScale = ContentScale.Fit,
                 modifier = Modifier.fillMaxSize()
             )
         }
@@ -68,11 +68,12 @@ currentScreen: WelcomeScreen
 
 }
 
-@Preview(showBackground = true, showSystemUi = true)
+@Preview(showBackground = true, showSystemUi = true,
+    backgroundColor = 0xFF225896)
 @Composable
 fun PreviewWelcomeScreen() {
 
-    val intro = WelcomeScreen[0]
+    val intro = WelcomeScreen[2]
 
     WelcomeContent(intro)
 
